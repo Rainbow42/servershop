@@ -1,4 +1,4 @@
-from conf import *
+from config import *
 from bs4 import BeautifulSoup
 import json
 

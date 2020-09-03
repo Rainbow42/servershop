@@ -1,9 +1,9 @@
 import sys
 import requests
-from conf import TEST_URL, FILE_HTML
+from config import TEST_URL, FILE_HTML
 from parse.url import Date
 from parse.parse import Parse, read_file
-
+from servers.send import Send
 message = ' '.join(sys.argv[1:]) or " "
 
 s = requests.Session()
@@ -14,4 +14,5 @@ html = url.get(filename=FILE_HTML,
 
 date = Parse()
 technical_list = date.search(read_file(FILE_HTML))
-print(technical_list)
+send = Send()
+
