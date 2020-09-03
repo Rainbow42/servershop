@@ -1,6 +1,6 @@
 import requests
-from parse.parse import Parse
-
+import sys
+sys.path.append('../')
 
 def write_file(filename, request):
     with open(filename, 'w') as output_file:

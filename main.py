@@ -1,6 +1,6 @@
 import sys
 import requests
-from config import TEST_URL, FILE_HTML
+from config import FILE_HTML, FILE_NAME_JSON
 from parse.url import Date
 from parse.parse import Parse, read_file
 from servers.send import Send
@@ -13,6 +13,8 @@ html = url.get(filename=FILE_HTML,
                session=s)
 
 date = Parse()
-technical_list = date.search(read_file(FILE_HTML))
-send = Send()
+technical_list = date.search(text=read_file(FILE_HTML),
+                             filename=FILE_NAME_JSON)
+Send()
+
 

@@ -21,8 +21,26 @@ class Parse:
     def search(self, text, filename):
         soup = BeautifulSoup(text, 'lxml')
         try:
-            technical = soup.find('div', {'class': 'product_category_list'})
-            prices = technical.find_all('div', {'class': 'subcategory-product-item__price-container'})
+            print('HEll')
+            data = []
+            table = soup.find('table', {'class': 'product_features'})
+            table_body = table.find_all('tr')
+            # print(table_body)
+
+            for row in table_body:
+                title_span = ""
+                titles = row.find_all('span', {'class': 'property_name'})
+                for span in titles:
+                    title_span = span.string
+                cols = row.find_all('td')
+                cols = [ele.text.strip() for ele in cols]
+                for ele in cols:
+                    if ele and title_span:
+                        data.append({title_span: ele})
+                print(data)
+                # data.append([ele for ele in cols if ele])
+
+            """prices = technical.find_all('div', {'class': 'subcategory-product-item__price-container'})
             technicals = technical.find_all('a', {'class': 'link_gtm-js link_pageevents-js ddl_product_link'})
             technical_lists = []
             if len(prices) == len(technicals):
@@ -37,6 +55,6 @@ class Parse:
             else:
                 technical_lists.append('Error len')
             json_file(filename=filename,
-                      list=technical_lists)
+                      list=technical_lists)"""
         except:
             return f'Error url!'
