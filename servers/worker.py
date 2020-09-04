@@ -9,7 +9,7 @@ from parse.url import Date
 from work_file import read_file
 
 
-def callback(ch, method, properties, body):
+def callback(body):
     s = requests.Session()
     url = Date()
     html = url.get(filename=FILE_HTML_SPECIFICATIONS,

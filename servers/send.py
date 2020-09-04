@@ -16,17 +16,17 @@ class Send:
         messages = self.message(FILE_NAME_JSON)
         for i in messages:
             channel.basic_publish(exchange='direct_logs',
-                                  routing_key='',
-                                  body=i,
-                                  properties=pika.BasicProperties(
-                                      delivery_mode=2,
-                                  ))
+                              routing_key='',
+                              body=i,
+                              properties=pika.BasicProperties(
+                              delivery_mode=2,
+                              ))
 
         # print(" [x] Sent %r" % messages)
         connection.close()
 
     def message(self, json_file) -> list:
-        data_list = (read_file_json(json_file))
+        data_list = read_file_json(json_file)
         url_list = []
         for i in data_list:
             url_list.append(i['url'])

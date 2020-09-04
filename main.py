@@ -5,7 +5,11 @@ from parse.url import Date
 from parse.parse import Parse
 from servers.send import Send
 from work_file import read_file
+import threading
+
+
 message = ' '.join(sys.argv[1:]) or " "
+
 
 s = requests.Session()
 url = Date()
@@ -19,5 +23,6 @@ if not ('Submission link' in html or 'Error url' in html):
                                  filename=FILE_NAME_JSON)
 
     Send()
+
 else:
     print(html)
