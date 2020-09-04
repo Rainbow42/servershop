@@ -1,19 +1,5 @@
 from bs4 import BeautifulSoup
-import json
-
-
-def read_file(filename):
-    with open(filename) as input_file:
-        text = input_file.read()
-        input_file.close()
-    return text
-
-
-def json_file(filename, list):
-    app_json = json.dumps(list)
-    with open(filename, "w", newline="") as file:
-        file.write(app_json.replace("\\/", "/").encode().decode('unicode_escape'))
-    file.close()
+from work_file import json_file
 
 
 class Parse:
@@ -34,9 +20,9 @@ class Parse:
                                             'price': price,
                                             'url': technical_link,
                                             })
+                json_file(filename=filename,
+                          list=technical_lists)
             else:
                 technical_lists.append('Error len')
-            json_file(filename=filename,
-                      list=technical_lists)
         except:
             return f'Error url!'

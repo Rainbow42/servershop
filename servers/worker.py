@@ -1,28 +1,30 @@
 import sys
+
 sys.path.append('../')
 import pika
 import requests
 from config import FILE_HTML_SPECIFICATIONS, FILE_NAME_JSON_SPECIFICATIONS
-from service_parse_specifications.parse import Parse, read_file
+from service_parse_specifications.parse import Parse
 from parse.url import Date
+from work_file import read_file
 
+
+def callback(ch, method, properties, body):
+    s = requests.Session()
+    url = Date()
+    html = url.get(filename=FILE_HTML_SPECIFICATIONS,
+                   url=body,
+                   session=s)
+
+    date = Parse()
+    technical_list = date.search(text=read_file(FILE_HTML_SPECIFICATIONS),
+                                 filename=FILE_NAME_JSON_SPECIFICATIONS)
+    print(html)
+    print(" [x] Received {}".format(body))
+    print(" [x] Done")
 
 
 class Worker:
-
-    def callback(self, ch, method, properties, body):
-        s = requests.Session()
-        url = Date()
-        html = url.get(filename=FILE_HTML_SPECIFICATIONS,
-                       url=body,
-                       session=s)
-
-        date = Parse()
-        technical_list = date.search(text=read_file(FILE_HTML_SPECIFICATIONS),
-                                     filename=FILE_NAME_JSON_SPECIFICATIONS)
-
-        print(" [x] Received {}".format(body))
-        print(" [x] Done")
 
     def __init__(self):
         connection = pika.BlockingConnection(pika.ConnectionParameters(host='localhost'))
@@ -38,7 +40,7 @@ class Worker:
 
         print(' [*] Waiting for messages. To exit press CTRL+C')
         channel.basic_consume(queue=queue_name,
-                              on_message_callback=self.callback,
+                              on_message_callback=callback,
                               # exchange='direct_logs',
                               auto_ack=True)
 

@@ -1,22 +1,22 @@
 import requests
 import sys
+from work_file import write_file
+
 sys.path.append('../')
-
-def write_file(filename, request):
-    with open(filename, 'w') as output_file:
-        output_file.write(str(request.text))
-
 
 
 class Date:
+
     def get(self, filename, url, session):
 
         try:
             request = session.get(url)
         except:
-            request = 'error'
-            print('Incorrect url!')
+            return 'Answer {} \nError url or Incorrect url!'.format(request)
         else:
-            print("Answer {}".format(request))
-            write_file(filename, request)
-        return request
+            if '20' in str(request):
+                print("Answer {}".format(request))
+                write_file(filename, request)
+            else:
+                return 'Answer {} \nSubmission link'.format(request)
+        return 'Answer {}'.format(request)

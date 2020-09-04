@@ -1,16 +1,9 @@
 import sys
+
 sys.path.append('../')
 import pika
-import json
 from config import FILE_NAME_JSON
-
-
-
-def read_file(filename):
-    with open(filename) as input_file:
-        data = json.load(input_file)
-        input_file.close()
-    return data
+from work_file import read_file_json
 
 
 class Send:
@@ -28,12 +21,12 @@ class Send:
                                   properties=pika.BasicProperties(
                                       delivery_mode=2,
                                   ))
-            break
-        print(" [x] Sent %r" % messages)
+
+        # print(" [x] Sent %r" % messages)
         connection.close()
 
     def message(self, json_file) -> list:
-        data_list = (read_file(json_file))
+        data_list = (read_file_json(json_file))
         url_list = []
         for i in data_list:
             url_list.append(i['url'])
