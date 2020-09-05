@@ -1,14 +1,12 @@
 import requests
-import sys
-from work_file import write_file
 
-sys.path.append('../')
+from work_file import write_file
 
 
 class Date:
 
     def get(self, filename, url, session):
-
+        request = 'Error link'
         try:
             request = session.get(url)
         except:
