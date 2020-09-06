@@ -1,34 +1,29 @@
 import pika
-from config import FILE_NAME_JSON
-from work_file import read_file_json
 import time
 
 
-def message(json_file) -> list:
-    data_list = read_file_json(json_file)
+def message(list_date) -> list:
+    """Получение url товаров из списка"""
     url_list = []
-    for i in data_list:
-        url_list.append(i['url'])
+    for itm in list_date:
+        for tmp in itm:
+            url_list.append(tmp['url'])
     return url_list
 
 
-class Send:
-    def __init__(self):
-        connection = pika.BlockingConnection(pika.ConnectionParameters(host='localhost'))
-        channel = connection.channel()
-        """channel.exchange_declare(exchange='direct_logs',
-                                 exchange_type='fanout')"""  # cоздание очереди
-        channel.queue_declare(queue='my_queue')
+def Send(messages):
+    """Создание очереди из списка  url"""
+    connection = pika.BlockingConnection(pika.ConnectionParameters(host='localhost'))
+    channel = connection.channel()
+    channel.queue_declare(queue='my_queue')  # наименование очереди
+    messages = message(messages)
+    for i in messages:  # отправка url
+        channel.basic_publish(exchange='',
+                              routing_key='my_queue',
+                              body=i,
+                              properties=pika.BasicProperties(
+                                  delivery_mode=2,
+                              ))
+        time.sleep(1)
 
-        messages = message(FILE_NAME_JSON)
-        print(messages)
-        for i in messages:
-            channel.basic_publish(exchange='',
-                                  routing_key='my_queue',
-                                  body=i,
-                                  properties=pika.BasicProperties(
-                                      delivery_mode=2,
-                                  ))
-            time.sleep(1)
-
-        connection.close()
+    connection.close()

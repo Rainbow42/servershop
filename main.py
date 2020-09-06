@@ -1,42 +1,52 @@
 import sys
 import requests
-from config import FILE_HTML, FILE_NAME_JSON
+from config import FILE_HTML, FILE_NAME_JSON, HEADERS
 from parse.url import Date
 from parse.parse import Parse
 from servers.send import Send
 from servers.worker import Worker
-from work_file import read_file
 from multiprocessing import Process
 
 
 def input_link():
-    message = input("Please enter the link ")
+    message = input("Please enter a link to the list of products")
     return message
 
 
+def get(url):
+    session = requests.Session()
+    link = Date()
+    html, status_code = link.get(filename=FILE_HTML,
+                                 url=url,
+                                 session=session,
+                                 headers=HEADERS)
+    return html, status_code
+
+
 def main():
-    work = Process(target=Worker)
-    work.start()
-    message = ' '.join(sys.argv[1:]) or ''
+    url = ' '.join(sys.argv[1:]) or ''  # получение данных с терминала
+
     while True:
-        print(message)
-        session = requests.Session()
-        url = Date()
-        html = url.get(filename=FILE_HTML,
-                       url=message,
-                       session=session)
-        if message:
-            if not ('Submission link' in html or 'Error url' in html):
+        if url:
+            work = Process(target=Worker())  # созаднеи прослушки канала
+            work.start()
+            html, status_code = get(url)
+            # print(html)
+            if status_code == 200:
                 date = Parse()
-                date.search(text=read_file(FILE_HTML),
-                            filename=FILE_NAME_JSON)
-                send = Process(target=Send())
+                page = date.number_page(text=html)
+                date_json = []
+                for itm in range(1, page + 1):
+                    url += '?available=1&status=55395790&p=' + str(itm)
+                    print(url)
+                    html, status_code = get(url)
+                    date_json.append(date.search(text=html,
+                                                 filename=FILE_NAME_JSON))
+                send = Process(target=Send, args=(date_json,))
                 send.start()
-            else:
-                print(html)
-                message = input_link()
+            url = ''
         else:
-            message = input_link()
+            url = input_link()
 
 
 if __name__ == '__main__':
