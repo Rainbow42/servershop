@@ -1,10 +1,10 @@
 from bs4 import BeautifulSoup
 import json
-from work_file import json_file
+from work_file import  write_file2
 
 
 class Parse:
-    def search(self, text, filename):
+    def search(self, text, filename,url):
         """Метод для поулчения полной информации по конкретному товару"""
         soup = BeautifulSoup(text, 'lxml')
         try:
@@ -31,10 +31,12 @@ class Parse:
                         replace('&nbsp;', ''). \
                         replace('/n-', '').replace("\\/", "/"))
             # добавление общего описания товара к характерискам
-            data.append({'Наименование товара': description[0], 'Описание товара': ''.join(description[1:])})
-            json_file(filename=filename,
-                      list=data)
+            data.append({'Наименование товара': description[0]})
+            data.append({ 'Описание товара': ''.join(description[1:])})
+            data.append({'url':url})
+            print("Харатеристики ", data)
+            write_file2(filename, data)
             # возвращаем полную информацуию о товаре
-            return json.dumps(data).replace("\\/", "/").encode().decode('unicode_escape')
+            return data
         except Exception as err:
             return str(err)

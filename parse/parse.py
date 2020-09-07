@@ -42,10 +42,10 @@ class Parse:
                                             })
                 # print((technical_lists))
                 json_file(filename=filename,
+                          mode='w',
                           list=technical_lists)
-
-                return list(technical_lists)
             else:
                 technical_lists.append('Error len!')  # если проверка не прошла возврашаем текст ошибки
+            return list(technical_lists)
         except Exception as err:
             return f'Error parse page!' + str(err)

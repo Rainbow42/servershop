@@ -1,9 +1,18 @@
 import json
+import sys
+
+sys.path.append('../')
 
 
 def write_file(filename, request):
     with open(filename, 'w') as output_file:
         output_file.write(str(request.text))
+
+
+def write_file2(filename, list):
+    wapp_json = json.dumps(list)
+    with open(filename, 'w', newline="") as file:
+        file.write(wapp_json.replace("\\/", "/").encode().decode('unicode_escape'))
 
 
 def read_file(filename):
@@ -13,11 +22,10 @@ def read_file(filename):
     return text
 
 
-def json_file(filename, list):
+def json_file(filename, mode, list):
     app_json = json.dumps(list)
-    with open(filename, "w", newline="") as file:
+    with open(filename, mode, newline="") as file:
         file.write(app_json.replace("\\/", "/").encode().decode('unicode_escape'))
-    file.close()
 
 
 def read_file_json(filename):

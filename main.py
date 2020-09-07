@@ -28,21 +28,26 @@ def main():
 
     while True:
         if url:
-            work = Process(target=Worker())  # созаднеи прослушки канала
-            work.start()
+            work = Process(target=Worker)  # созаднеи прослушки канала
+
+            date_json = []
             html, status_code = get(url)
             # print(html)
             if status_code == 200:
                 date = Parse()
                 page = date.number_page(text=html)
-                date_json = []
+                # print('Count page {}'.format(page))
                 for itm in range(1, page + 1):
                     url += '?available=1&status=55395790&p=' + str(itm)
-                    print(url)
+                    print('url = {}  Page {}'.format(url, page))
                     html, status_code = get(url)
-                    date_json.append(date.search(text=html,
-                                                 filename=FILE_NAME_JSON))
+                    if status_code == 200:
+                        date_json.append(date.search(text=html,
+                                                     filename=FILE_NAME_JSON))
+                #work.close()
+                #print(date_json)
                 send = Process(target=Send, args=(date_json,))
+                work.start()
                 send.start()
             url = ''
         else:
