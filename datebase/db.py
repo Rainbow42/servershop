@@ -10,35 +10,37 @@ from psycopg2 import sql
 
 class Database:
     def __init__(self):
+        self.translator = Translator()
         self.conn = psycopg2.connect(database="citilink", user="antonida",
                                      password="password", host="localhost", port=5432)
         self.cur = self.conn.cursor()
 
-    def data_validation(self, select_list, data_list):
+    def data_validation(self, select_list, data_list) -> list:
+        """Проверка на совпадение данных из бд и новых данных."""
         res = []
         print(select_list)
-        for tuples in data_list:
-            for select in select_list:
-                print(len(tuples), len(select) - 1)
-                if len(tuples) == len(select) - 1:
-                    for s in range(len(select)):
-                        if s == 0:
-                            continue
-                        if tuples[s] != select[s]:
-                            # print(tuples[t], " ", select[s])
-                            res.append(tuples)
+        for select in select_list:
+            for tuples in data_list:
+                for s in range(len(select)):
+                    if s == 0:
+                        continue
+                    if tuples != select[s]:
+                        res.append(tuples)
 
         print(res)
 
     def atrributes_string(self, description) -> str:
+        """Формируем из полей описания строку для запросов"""
         attributes = ""
-        for i in description:  # формируем строку атрибутов для запроса
-            attributes += ', ' + i
-        attributes = attributes[0].replace(',', '')
-        attributes = attributes.lower()
+        for index, i in enumerate(description):  # формируем строку атрибутов для запроса
+            if index == 0:
+                attributes += i
+            else:
+                attributes += ', ' + i
         return attributes
 
     def create_table(self, description, title):
+        """Генерация запроса на создание БД."""
         request_create = "CREATE TABLE " + str(title) + " (id SERIAL  "
         for i in range(len(description)):
             if i != len(description):
@@ -50,12 +52,33 @@ class Database:
         except Exception as er:
             print(er)
 
-    def insert_table(self, data_json, title, description):
-        """title - название таблицы
-        description - список ключей характеристик на английском"""
+    def list_field(self, data_json) -> list:
+        list_fields = [[]]  # список для полей
+        tmp = 0
+        for field in data_json:
+            for key in field:
+                list_fields[tmp].append(str(list(key.keys())[0]))
+            list_fields.append([])
+            tmp += 1
+        for field in list_fields:
+            for index, itm in enumerate(field):
+                if itm in 'Наименование товара':
+                    tmp = field[0]
+                    field[0] = "Наименование товара"
+                    field[index] = tmp
+        for field in list_fields:
+            for index, itm in enumerate(field):
+                name = self.translator.translate(itm, src='ru')
+                field[index] = name.text.lower().replace(" ", '_').replace(",", '')
+        return list_fields
 
-        inserts = []  # cписок для характеристик товара
+    def insert_table(self, data_json, title, description):
+        """Генерация запроса встаки даннх в БД.
+        title - название таблицы
+        description - список ключей характеристик на английском"""
+        inserts = []  # список для характеристик товара
         count = False
+        list_fields = self.list_field(data_json)
         for i in data_json:
             if count:
                 for x in i:
@@ -67,7 +90,6 @@ class Database:
                 if 'Наименование товара' in x.keys():
                     name = x['Наименование товара'].split(' ')[0]
                     inserts.append([name])
-
         count = 0
         for i in data_json:
             if count < len(data_json):
@@ -80,20 +102,30 @@ class Database:
         for i in inserts:  # формируем кортеж из характеристик
             list_tuple.append(tuple(i))
         # print(list_tuple)
-        try:  #
-            attributes = self.atrributes_string(description)
+        try:  # запрос на получение данных из таблицы
             request_select = "SELECT t.*, CTID FROM public.{} t LIMIT 501".format(title)
             self.cur.execute(request_select)
             request_select = self.cur.fetchall()
         except Exception as er:
             print(er)
-        try:
-            self.data_validation(request_select, list_tuple)
-            """request_insert = "INSERT INTO " + str(title)
-            for tuples in list_tuple:  # генерация зароса на вставку
-                inserts = sql.SQL(request_insert + "{} VALUES {}".format(attributes, tuples))
-            cur.execute(inserts)
-            conn.commit()"""
+        try:  # вставка данных
+            """ request_insert = "INSERT INTO " + str(title)
+            for index, tuples in enumerate(list_tuple):
+                if len(request_select) == 0:  # если БД пуста
+                    for tmp in list_tuple:  # генерация зароса на вставку
+                        attributes = self.atrributes_string(list_fields[index])
+                        inserts = sql.SQL(request_insert + "{} VALUES {}".format(attributes, tmp))
+                        self.cur.execute(inserts)
+                        self.conn.commit()
+                    break
+                else:
+                    attributes = self.atrributes_string(list_fields[index])
+                    check_data = self.data_validation(request_select, tuples)  # проверка на совпадение данных
+                    if check_data:
+                        inserts = sql.SQL(request_insert + "{} VALUES {}".format(attributes, tuples))
+                        self.cur.execute(inserts)
+                        self.conn.commit()"""
+
         except Exception as er:
             print(er)
 
@@ -105,34 +137,31 @@ class Database:
 
     def traning_data(self, data_list):
         """Предворительная подготовка данных"""
-        translator = Translator()
         title = ''  # наименование вида товара на русском
         name = ''  # наименование вида товара на английском
         description = []  # список для ключей из характеристик о товаре
         description_max = []  # для максимальной длины харкатеристик, считаем как полную
-        list_description = []
         id = 0  # индекс максимальной харатеристики
-        for i in range(len(data_list)):  # подсчет длины каждой хакартеристики товара
-            description_max.append(len(data_list[i]))
-        for index, i in enumerate(description_max):  # находим индекс максимлаьной длины
-            if i == max(description_max):
+        for itm in range(len(data_list)):  # подсчет длины каждой хакартеристики товара
+            description_max.append(len(data_list[itm]))
+        for index, itm in enumerate(description_max):  # находим индекс максимлаьной длины
+            if itm == max(description_max):
                 id = index
-        for i in data_list[id]:  # так как наименовае товара оказывается в конце после парсинга  характеристик
-            if 'Наименование товара' in i.keys():
-                keys = str(list(i.keys())[0])  # получение  ключа как строки
-                title = i['Наименование товара'].split(' ')[0]  # наименование вида товара на русском
+        for itm in data_list[id]:  # так как наименовае товара оказывается в конце после парсинга  характеристик
+            if 'Наименование товара' in itm.keys():
+                keys = str(list(itm.keys())[0])  # получение  ключа как строки
+                title = itm['Наименование товара'].split(' ')[0]  # наименование вида товара на русском
                 print(title)
-                result = translator.translate(keys, src='ru')  # перевод ключа на английский
+                result = self.translator.translate(keys, src='ru')  # перевод ключа на английский
                 description.append(result.text.replace(" ", "_"))
-                name = translator.translate(title, src='ru')
+                name = self.translator.translate(title, src='ru')
                 name = name.text.lower()
                 # print(result.text)
         for i in data_list[id]:  # работа с харектеристиакми товара
             if not 'Наименование товара' in i.keys():
-                r = translator.translate(str(list(i.keys())[0]), src='ru')
+                r = self.translator.translate(str(list(i.keys())[0]), src='ru')
                 r = r.text.replace(",", "").replace(' ', "_").replace('(', "").replace(")", "")
                 description.append(r)
-
         check_create = self.cur.execute(
             "SELECT n.nspname, c.relname FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace "
             "WHERE c.relkind = 'r' AND n.nspname NOT IN('pg_catalog', 'citilink');")  # запрос для проверки создана ли
