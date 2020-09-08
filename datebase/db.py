@@ -4,75 +4,155 @@ from googletrans import Translator
 # from config import FILE_NAME_JSON_SPECIFICATIONS
 import json
 
+FILE_NAME_JSON_SPECIFICATIONS = 'url_list2.json'
 from psycopg2 import sql
 
-FILE_NAME_JSON_SPECIFICATIONS = 'url_list2.json'
 
-conn = psycopg2.connect(database="citilink", user="antonida",
-                        password="password", host="localhost", port=5432)
-cur = conn.cursor()
+class Database:
+    def __init__(self):
+        self.conn = psycopg2.connect(database="citilink", user="antonida",
+                                     password="password", host="localhost", port=5432)
+        self.cur = self.conn.cursor()
 
+    def data_validation(self, select_list, data_list):
+        res = []
+        print(select_list)
+        for tuples in data_list:
+            for select in select_list:
+                print(len(tuples), len(select) - 1)
+                if len(tuples) == len(select) - 1:
+                    for s in range(len(select)):
+                        if s == 0:
+                            continue
+                        if tuples[s] != select[s]:
+                            # print(tuples[t], " ", select[s])
+                            res.append(tuples)
 
-def create_table(description, title):
-    stroka = "CREATE TABLE " + str(title) + " (id SERIAL PRIMARY KEY "
-    for i in range(len(description)):
-        if i != len(description):
-            stroka += ", " + str(description[i]).lower() + " VARCHAR"
-    stroka += " );"
-    print(stroka)
-    return stroka
+        print(res)
 
+    def atrributes_string(self, description) -> str:
+        attributes = ""
+        for i in description:  # формируем строку атрибутов для запроса
+            attributes += ', ' + i
+        attributes = attributes[0].replace(',', '')
+        attributes = attributes.lower()
+        return attributes
 
-def insert_table(data_json, title, description):
-    insert = []
-    values = [
-        ('ALA', 'Almaty', 'Kazakhstan'),
-        ('TSE', 'Astana', 'Kazakhstan'),
-        ('PDX', 'Portland', 'USA'),
-    ]
-    # inserts = cur.execute('INSERT INTO {} (code, name, country_name) VALUES {}'.format(title))
-    for i in data_json:
-        for x in i:
-            if 'Наименование товара' in x.keys():
-                name = x['Наименование товара'].split(' ')[0]
-                insert.append([name])
-                # print(name)
-        break
-    count = 0
-    for i in data_json:
-        if count < len(data_json):
+    def create_table(self, description, title):
+        request_create = "CREATE TABLE " + str(title) + " (id SERIAL  "
+        for i in range(len(description)):
+            if i != len(description):
+                request_create += ", " + str(description[i]).lower() + " VARCHAR"
+        request_create += " );"
+        try:
+            self.cur.execute(request_create)
+            self.conn.commit()
+        except Exception as er:
+            print(er)
+
+    def insert_table(self, data_json, title, description):
+        """title - название таблицы
+        description - список ключей характеристик на английском"""
+
+        inserts = []  # cписок для характеристик товара
+        count = False
+        for i in data_json:
+            if count:
+                for x in i:
+                    if 'Наименование товара' in x.keys():
+                        name = x['Наименование товара'].split(' ')[0]
+                        inserts[0].append(name)  # вставка первого элемента для запуска сиквенса
+                        count = False
             for x in i:
-                if not 'Наименование товара' in x.keys():
-                    string = str(list(x.values())[0])
-                    insert[count].append(string)
+                if 'Наименование товара' in x.keys():
+                    name = x['Наименование товара'].split(' ')[0]
+                    inserts.append([name])
 
-        count += 1
-        break
-    list_tuple = []
-    for i in insert:
-        list_tuple.append(tuple(i))
-    # print(list_tuple)
-    string = ""
-    for i in description:
-        string += i + ', '
-    #print(string.lower())
-    print(title)
-    title = "INSERT INTO " + str(title)
-    inserts = sql.SQL(title + " ({}) VALUES {}".format(string.lower(), list_tuple))
-    print(insert)
-    cur.execute(insert)
-    print(cur.fetchall())
+        count = 0
+        for i in data_json:
+            if count < len(data_json):
+                for x in i:
+                    if not 'Наименование товара' in x.keys():
+                        string = str(list(x.values())[0])
+                        inserts[count].append(string)
+            count += 1
+        list_tuple = []  # спсиок кортежей
+        for i in inserts:  # формируем кортеж из характеристик
+            list_tuple.append(tuple(i))
+        # print(list_tuple)
+        try:  #
+            attributes = self.atrributes_string(description)
+            request_select = "SELECT t.*, CTID FROM public.{} t LIMIT 501".format(title)
+            self.cur.execute(request_select)
+            request_select = self.cur.fetchall()
+        except Exception as er:
+            print(er)
+        try:
+            self.data_validation(request_select, list_tuple)
+            """request_insert = "INSERT INTO " + str(title)
+            for tuples in list_tuple:  # генерация зароса на вставку
+                inserts = sql.SQL(request_insert + "{} VALUES {}".format(attributes, tuples))
+            cur.execute(inserts)
+            conn.commit()"""
+        except Exception as er:
+            print(er)
 
-def read_file_json(filename):
-    with open(filename) as input_file:
-        data = json.load(input_file)
-        input_file.close()
-    return data
+    def read_file_json(self, filename):
+        with open(filename) as input_file:
+            data = json.load(input_file)
+            input_file.close()
+        return data
+
+    def traning_data(self, data_list):
+        """Предворительная подготовка данных"""
+        translator = Translator()
+        title = ''  # наименование вида товара на русском
+        name = ''  # наименование вида товара на английском
+        description = []  # список для ключей из характеристик о товаре
+        description_max = []  # для максимальной длины харкатеристик, считаем как полную
+        list_description = []
+        id = 0  # индекс максимальной харатеристики
+        for i in range(len(data_list)):  # подсчет длины каждой хакартеристики товара
+            description_max.append(len(data_list[i]))
+        for index, i in enumerate(description_max):  # находим индекс максимлаьной длины
+            if i == max(description_max):
+                id = index
+        for i in data_list[id]:  # так как наименовае товара оказывается в конце после парсинга  характеристик
+            if 'Наименование товара' in i.keys():
+                keys = str(list(i.keys())[0])  # получение  ключа как строки
+                title = i['Наименование товара'].split(' ')[0]  # наименование вида товара на русском
+                print(title)
+                result = translator.translate(keys, src='ru')  # перевод ключа на английский
+                description.append(result.text.replace(" ", "_"))
+                name = translator.translate(title, src='ru')
+                name = name.text.lower()
+                # print(result.text)
+        for i in data_list[id]:  # работа с харектеристиакми товара
+            if not 'Наименование товара' in i.keys():
+                r = translator.translate(str(list(i.keys())[0]), src='ru')
+                r = r.text.replace(",", "").replace(' ', "_").replace('(', "").replace(")", "")
+                description.append(r)
+
+        check_create = self.cur.execute(
+            "SELECT n.nspname, c.relname FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace "
+            "WHERE c.relkind = 'r' AND n.nspname NOT IN('pg_catalog', 'citilink');")  # запрос для проверки создана ли
+        # таблица
+        list_table = self.cur.fetchall()  # спсисок существующих таблиц
+        for itm in list_table:
+            if name in itm[1]:  # проверка существования таблицы
+                self.insert_table(data_json=data_list,
+                                  title=name,
+                                  description=description)  # вставка данных если таблица существует
+                break
+            else:
+                self.create_table(description=description,
+                                  title='flash')
 
 
 data_json = [{'Совместимость с брендом': 'Canon'},
              {'Ведущее число макс(ISO100)': '43 м'}, {'Зум, нижняя граница': '24 мм'},
-             {'Зум, верхняя граница': '105 мм'}, {'FP-синхронизация': 'ДА'}, {'Синхронизация по второй шторке': 'ДА'},
+             {'Зум, верхняя граница': '105 мм'}, {'FP-синхронизация': 'ДА'},
+             {'Синхронизация по второй шторке': 'ДА'},
              {'Наклон вверх': '90 °'}, {'Наклон вправо': '180 °'}, {'Наклон влево': '150 °'},
              {'Контроль цветовой температуры': 'ДА'}, {'Возможность беспроводного управления': 'ДА'},
              {'Коммерческое название основной системы экспозамера': 'E-TTLII'}, {'Подсветка автофокуса': 'ДА'},
@@ -89,7 +169,7 @@ data_json = [{'Совместимость с брендом': 'Canon'},
                                     '270 градусов, а вертикально на 45, 60, 75 и 90 градусов. Также возможна работа '
                                     'на дистанции с фотоаппаратом. Предусмотрена FP-синхронизация для эффективной '
                                     'работы с тенями. Питание осуществляется от 4 батареек типа АА.'},
-             {'url': b'https://www.citilink.ru/catalog/photo_and_video/photo_flashes/346629/'}], \
+             {'url': 'https://www.citilink.ru/catalog/photo_and_video/photo_flashes/346629/'}], \
             [{'Совместимость с '
               'брендом': 'Nikon'}, {'Ведущее число макс(ISO100)': '24 м'},
              {'FP-синхронизация': 'Да'}, {'Синхронизация по второй шторке': 'Да'},
@@ -109,36 +189,8 @@ data_json = [{'Совместимость с брендом': 'Canon'},
                                     '75 и 90 градусов, поэтому вы сможете настроить свет так, как вам нужно. '
                                     'Совместима модель с i-TTL. Простое управление делает работу с устройством '
                                     'приятной и комфортной. Вспышка работает от двух батареек типа ААА.'},
-             {'url': b'https://www.citilink.ru/catalog/photo_and_video/photo_flashes/998318/'}]
-translator = Translator()
-title = ''
-name = ''
-description = []
-for i in data_json:
-    for x in i:
-        if 'Наименование товара' in x.keys():
-            keys = str(list(x.keys())[0])
-            title = x['Наименование товара'].split(' ')[0]
-            # print(title)
-            result = translator.translate(keys, src='ru')
-            description.append(result.text.replace(" ", "_"))
-            name = translator.translate(title, src='ru')
-            name = name.text.lower()
-            # print(result.text)
-    break
-for i in data_json:
-    for x in i:
-        if not 'Наименование товара' in x.keys():
-            r = translator.translate(str(list(x.keys())[0]), src='ru')
-            r = r.text.replace(",", "").replace(' ', "_").replace('(', "").replace(")", "")
-            description.append(r)
-    break
-# print(description)
+             {'url': 'https://www.citilink.ru/catalog/photo_and_video/photo_flashes/998318/'}]
 
-
-check_create = cur.execute(
-    "SELECT n.nspname, c.relname FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace WHERE c.relkind = 'r' AND n.nspname NOT IN('pg_catalog', 'citilink');")
-list_table = cur.fetchall()
-for itm in list_table:
-    if name in itm[1]:
-        insert_table(data_json, name, description)
+if __name__ == '__main__':
+    db = Database()
+    db.traning_data(data_json)

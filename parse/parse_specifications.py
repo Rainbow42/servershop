@@ -1,20 +1,24 @@
 from bs4 import BeautifulSoup
 import json
-from work_file import  write_file2
+from work_file import write_file2
 
 
 class Parse:
-    def search(self, text, filename,url):
+    def search(self, text, filename, url):
         """Метод для поулчения полной информации по конкретному товару"""
         soup = BeautifulSoup(text, 'lxml')
         try:
             data = []
             table = soup.find('table', {'class': 'product_features'})  # парсинг общих характеристик в таблице
+            price = soup.find('div', {'class': "main_content"}).find('div', {"class": "main_content_wrapper"})
+            price = price.find('div', {'class': "product_actions product_data__gtm-js product_data__pageevents-js "
+                                                "control-attached__js"})
+            print(price)
             table_body = table.find_all('tr')
             for row in table_body:
                 title_span = ""
                 titles = row.find_all('span', {'class': 'property_name'})
-                for span in titles: #  работы с тегами таблицы
+                for span in titles:  # работы с тегами таблицы
                     title_span = span.string
                 cols = row.find_all('td')
                 cols = [ele.text.strip() for ele in cols]
@@ -32,8 +36,8 @@ class Parse:
                         replace('/n-', '').replace("\\/", "/"))
             # добавление общего описания товара к характерискам
             data.append({'Наименование товара': description[0]})
-            data.append({ 'Описание товара': ''.join(description[1:])})
-            data.append({'url':url})
+            data.append({'Описание товара': ''.join(description[1:])})
+            data.append({'url': url})
             print("Харатеристики ", data)
             write_file2(filename, data)
             # возвращаем полную информацуию о товаре

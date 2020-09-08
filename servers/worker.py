@@ -9,13 +9,15 @@ from work_file import json_file
 
 def callback(body):
     """Отправка на парсинг url с полным описанием тоавара"""
+    body = body.decode('utf-8')
+    print(body)
     s = requests.Session()
     result = []
     url = Date()
     html, status_code = url.get(filename=FILE_HTML_SPECIFICATIONS,
                                 url=body,
                                 session=s,
-                                headers=HEADERS)
+                                headers=HEADERS,)
     print(" [x] Answer {} Received {} ".format(status_code, body))
     if status_code == 200:
         date = Parse()
