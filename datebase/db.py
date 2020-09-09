@@ -1,10 +1,8 @@
 import psycopg2
 # from work_file import read_file_json
 from googletrans import Translator
-# from config import FILE_NAME_JSON_SPECIFICATIONS
 import json
 
-FILE_NAME_JSON_SPECIFICATIONS = 'url_list2.json'
 from psycopg2 import sql
 
 
@@ -106,9 +104,9 @@ class Database:
         for i in inserts:  # формируем кортеж из характеристик
             list_tuple.append(tuple(i))
         print("Список кортежей {}".format(list_tuple))
-        check_data = self.data_validation(request_select, list_tuple[0])  # проверка на совпадение данных
+
         try:  # вставка данных
-            """ request_insert = "INSERT INTO " + str(title)
+            request_insert = "INSERT INTO " + str(title)
             for index, tuples in enumerate(list_tuple):
                 if len(request_select) == 0:  # если БД пуста
                     for tmp in list_tuple:  # генерация зароса на вставку
@@ -124,7 +122,7 @@ class Database:
                     if check_data:
                         inserts = sql.SQL(request_insert + "{} VALUES {}".format(attributes, tuples))
                         self.cur.execute(inserts)
-                        self.conn.commit()"""
+                        self.conn.commit()
         except Exception as er:
             print(er)
 
@@ -132,7 +130,8 @@ class Database:
         with open(filename) as input_file:
             data = json.load(input_file)
             input_file.close()
-        return data
+            print(data)
+        #self.traning_data(data_list=data)
 
     def traning_data(self, data_list):
         """Предворительная подготовка данных"""
@@ -221,6 +220,6 @@ data_json = [{'Совместимость с брендом': 'Canon'},
                                     'приятной и комфортной. Вспышка работает от двух батареек типа ААА.'},
              {'url': 'https://www.citilink.ru/catalog/photo_and_video/photo_flashes/998318/'}]
 
-if __name__ == '__main__':
+"""if __name__ == '__main__':
     db = Database()
-    db.traning_data(data_json)
+    db.traning_data(data_json)"""

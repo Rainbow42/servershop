@@ -10,9 +10,11 @@ def write_file(filename, request):
 
 
 def write_file2(filename, list):
-    wapp_json = json.dumps(list)
-    with open(filename, 'w', newline="") as file:
-        file.write(wapp_json.replace("\\/", "/").encode().decode('unicode_escape'))
+    with open(filename, 'w') as output_file:
+        output_file.write(str(list) + str(","))
+    """wapp_json = json.dumps(list)
+    with open(filename, 'a', newline="") as file:
+        file.write(wapp_json.replace("\\/", "/").encode().decode('unicode_escape'))"""
 
 
 def read_file(filename):

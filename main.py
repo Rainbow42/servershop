@@ -1,10 +1,10 @@
 import sys
 import requests
-from config import FILE_HTML, FILE_NAME_JSON, HEADERS
+from config import FILE_HTML, FILE_NAME_JSON, HEADERS, FILE_NAME_JSON_SPECIFICATIONS
+from datebase.db import Database
 from parse.url import Date
 from parse.parse import Parse
 from servers.send import Send
-#from servers.worker import Worker
 from multiprocessing import Process
 
 
@@ -28,26 +28,24 @@ def main():
 
     while True:
         if url:
-           # work = Process(target=Worker)  # созаднеи прослушки канала
             date_json = []
             html, status_code = get(url)
             # print(html)
             if status_code == 200:
                 date = Parse()
-                page = date.number_page(text=html)
-                # print('Count page {}'.format(page))
+                page = date.number_page(text=html)  # подсчет колличества страниц
                 for itm in range(1, page + 1):
                     url += '?available=1&status=55395790&p=' + str(itm)
-                    print('url = {}  Page {}'.format(url, page))
+                    print('url = {}  Page {}'.format(url, itm))
                     html, status_code = get(url)
                     if status_code == 200:
                         date_json.append(date.search(text=html,
                                                      filename=FILE_NAME_JSON))
-                #work.close()
-                #print(date_json)
                 send = Process(target=Send, args=(date_json,))
-                #work.start()
                 send.start()
+                send.join()
+                db = Database()
+                db.read_file_json(FILE_NAME_JSON_SPECIFICATIONS)
             url = ''
         else:
             url = input_link()

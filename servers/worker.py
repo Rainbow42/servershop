@@ -1,8 +1,9 @@
 import pika
 import requests
 import sys
-
-from config import FILE_HTML_SPECIFICATIONS, FILE_NAME_JSON_SPECIFICATIONS, HEADERS
+from threading import Thread
+from multiprocessing import Process
+from config import FILE_HTML_SPECIFICATIONS, FILE_NAME_JSON_SPECIFICATIONS, HEADERS, COUNT_THREAD
 from parse.parse_specifications import Parse
 from parse.url import Date
 import time
@@ -46,13 +47,15 @@ def Worker():
 
     print('\n [*] Waiting for messages. To exit press CTRL+C')
     try:
-        channel.basic_qos(prefetch_count=1)
-        channel.basic_consume(callback,
-                              queue='queue')
-        time.sleep(2)
+        for count_thread in range(COUNT_THREAD):
+            t1 = Thread(target=channel.basic_consume, args=(callback, 'queue',))
+            #  t1 = Process(target=channel.basic_consume, args=(callback, 'queue',))
+            t1.start()
+            time.sleep(2)
         channel.start_consuming()
     except Exception as err:
         print(err)
 
 
-Worker()
+if __name__ == '__main__':
+    Worker()
