@@ -4,7 +4,7 @@ from config import FILE_HTML, FILE_NAME_JSON, HEADERS
 from parse.url import Date
 from parse.parse import Parse
 from servers.send import Send
-from servers.worker import Worker
+#from servers.worker import Worker
 from multiprocessing import Process
 
 
@@ -28,8 +28,7 @@ def main():
 
     while True:
         if url:
-            work = Process(target=Worker)  # созаднеи прослушки канала
-
+           # work = Process(target=Worker)  # созаднеи прослушки канала
             date_json = []
             html, status_code = get(url)
             # print(html)
@@ -47,7 +46,7 @@ def main():
                 #work.close()
                 #print(date_json)
                 send = Process(target=Send, args=(date_json,))
-                work.start()
+                #work.start()
                 send.start()
             url = ''
         else:

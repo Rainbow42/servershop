@@ -18,15 +18,15 @@ class Database:
     def data_validation(self, select_list, data_list) -> list:
         """Проверка на совпадение данных из бд и новых данных."""
         res = []
-        print(select_list)
+        # print(select_list)
         for select in select_list:
-            for tuples in data_list:
+            for index, tuples in enumerate(data_list):
                 for s in range(len(select)):
                     if s == 0:
                         continue
-                    if tuples != select[s]:
-                        res.append(tuples)
-
+                    if tuples[1] != select[s]:
+                        # print(tuples)
+                        res.append(data_list[index])
         print(res)
 
     def atrributes_string(self, description) -> str:
@@ -79,13 +79,18 @@ class Database:
         inserts = []  # список для характеристик товара
         count = False
         list_fields = self.list_field(data_json)
+        try:  # запрос на получение данных из таблицы
+            request_select = "SELECT t.*, CTID FROM public.{} t LIMIT 501".format(title)
+            self.cur.execute(request_select)
+            request_select = self.cur.fetchall()
+        except Exception as er:
+            print(er)
         for i in data_json:
-            if count:
+            if len(request_select) == 0:
                 for x in i:
                     if 'Наименование товара' in x.keys():
                         name = x['Наименование товара'].split(' ')[0]
                         inserts[0].append(name)  # вставка первого элемента для запуска сиквенса
-                        count = False
             for x in i:
                 if 'Наименование товара' in x.keys():
                     name = x['Наименование товара'].split(' ')[0]
@@ -94,26 +99,21 @@ class Database:
         for i in data_json:
             if count < len(data_json):
                 for x in i:
-                    if not 'Наименование товара' in x.keys():
-                        string = str(list(x.values())[0])
-                        inserts[count].append(string)
+                    string = str(list(x.values())[0])
+                    inserts[count].append(string)
             count += 1
         list_tuple = []  # спсиок кортежей
         for i in inserts:  # формируем кортеж из характеристик
             list_tuple.append(tuple(i))
-        # print(list_tuple)
-        try:  # запрос на получение данных из таблицы
-            request_select = "SELECT t.*, CTID FROM public.{} t LIMIT 501".format(title)
-            self.cur.execute(request_select)
-            request_select = self.cur.fetchall()
-        except Exception as er:
-            print(er)
+        print("Список кортежей {}".format(list_tuple))
+        check_data = self.data_validation(request_select, list_tuple[0])  # проверка на совпадение данных
         try:  # вставка данных
             """ request_insert = "INSERT INTO " + str(title)
             for index, tuples in enumerate(list_tuple):
                 if len(request_select) == 0:  # если БД пуста
                     for tmp in list_tuple:  # генерация зароса на вставку
                         attributes = self.atrributes_string(list_fields[index])
+                        print("Attributes {}".attributes)
                         inserts = sql.SQL(request_insert + "{} VALUES {}".format(attributes, tmp))
                         self.cur.execute(inserts)
                         self.conn.commit()
@@ -125,7 +125,6 @@ class Database:
                         inserts = sql.SQL(request_insert + "{} VALUES {}".format(attributes, tuples))
                         self.cur.execute(inserts)
                         self.conn.commit()"""
-
         except Exception as er:
             print(er)
 
@@ -151,7 +150,7 @@ class Database:
             if 'Наименование товара' in itm.keys():
                 keys = str(list(itm.keys())[0])  # получение  ключа как строки
                 title = itm['Наименование товара'].split(' ')[0]  # наименование вида товара на русском
-                print(title)
+                # print(title)
                 result = self.translator.translate(keys, src='ru')  # перевод ключа на английский
                 description.append(result.text.replace(" ", "_"))
                 name = self.translator.translate(title, src='ru')
@@ -161,6 +160,7 @@ class Database:
             if not 'Наименование товара' in i.keys():
                 r = self.translator.translate(str(list(i.keys())[0]), src='ru')
                 r = r.text.replace(",", "").replace(' ', "_").replace('(', "").replace(")", "")
+                r = r.lower()
                 description.append(r)
         check_create = self.cur.execute(
             "SELECT n.nspname, c.relname FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace "
@@ -168,6 +168,7 @@ class Database:
         # таблица
         list_table = self.cur.fetchall()  # спсисок существующих таблиц
         for itm in list_table:
+            #
             if name in itm[1]:  # проверка существования таблицы
                 self.insert_table(data_json=data_list,
                                   title=name,

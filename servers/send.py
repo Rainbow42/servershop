@@ -14,18 +14,21 @@ def message(list_date) -> list:
 
 def Send(messages):
     """Поставщик. Создание очереди из списка  url"""
-    connection = pika.BlockingConnection(pika.ConnectionParameters(host='localhost'))
+    credentials = pika.PlainCredentials('guest', 'guest')
+    connection = pika.BlockingConnection(pika.ConnectionParameters('localhost',
+                                                                   5672,
+                                                                   '/',
+                                                                   credentials))
     channel = connection.channel()
-    channel.queue_declare(queue='queue', durable=False)  # наименование очереди
+    channel.queue_declare(queue='queue',durable=True) # наименование очереди
     messages = message(messages)
     for m in messages:  # отправка url
-        print(m)
+        # print(m)
         channel.basic_publish(exchange='',
                               routing_key='queue',
                               body=m,
                               properties=pika.BasicProperties(
-                                  delivery_mode=2,
-                              ))
+                                  delivery_mode=2))
         time.sleep(1)
 
     connection.close()
