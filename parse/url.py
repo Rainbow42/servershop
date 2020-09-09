@@ -1,17 +1,19 @@
-import requests
+from work_file import write_file
 
 
 class Date:
-
-    def get(self, url, session):
-        r = requests.get(url)
-        print("Answer {}".format(r))
-        request = session.get(url)
-        with open('test.html', 'w') as output_file:
-            output_file.write(str(r.text.encode('utf-8')))
-        return request.text
-
-
-s = requests.Session()
-url = Date()
-url.get(url='https://www.citilink.ru/catalog/mobile/smartfony/', session=s)
+    def get(self, filename, url, session, headers, params=None):
+        """Метод для получение содержания со с старницы """
+        request = session.get(url, headers=headers, params=params)
+        try:
+            request = session.get(url, headers=headers, params=params)
+        except Exception as err:
+            return 'Answer {} \nError url or Incorrect url!'.format(request.status_code) + str(err)
+        else:
+            if request.status_code == 200:
+                print("Answer {}".format(request.status_code))
+                write_file(filename, request)
+                return request.text, request.status_code
+            else:
+                print('Answer {} \nSubmission link'.format(request.status_code))
+                return request.text, request.status_code
